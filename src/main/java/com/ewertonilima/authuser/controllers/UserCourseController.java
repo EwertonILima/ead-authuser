@@ -1,6 +1,6 @@
 package com.ewertonilima.authuser.controllers;
 
-import com.ewertonilima.authuser.clients.UserClient;
+import com.ewertonilima.authuser.clients.CourseClient;
 import com.ewertonilima.authuser.dtos.CourseDto;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -19,16 +19,16 @@ import java.util.UUID;
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class UserCourseController {
 
-    final UserClient userClient;
+    final CourseClient courseClient;
 
-    public UserCourseController(UserClient userClient) {
-        this.userClient = userClient;
+    public UserCourseController(CourseClient courseClient) {
+        this.courseClient = courseClient;
     }
 
     @GetMapping("/users/{userId}/courses")
     public ResponseEntity<Page<CourseDto>> getAllCoursesByUser(@PageableDefault(page = 0, size = 10,
             sort = "courseId", direction = Sort.Direction.ASC) Pageable pageable,
                                                                @PathVariable(value = "userId") UUID userId) {
-        return ResponseEntity.status(HttpStatus.OK).body(userClient.getAllCoursesByUser(userId, pageable));
+        return ResponseEntity.status(HttpStatus.OK).body(courseClient.getAllCoursesByUser(userId, pageable));
     }
 }
