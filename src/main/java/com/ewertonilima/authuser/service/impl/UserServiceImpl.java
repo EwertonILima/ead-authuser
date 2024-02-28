@@ -1,9 +1,7 @@
 package com.ewertonilima.authuser.service.impl;
 
 import com.ewertonilima.authuser.clients.CourseClient;
-import com.ewertonilima.authuser.models.UserCourseModel;
 import com.ewertonilima.authuser.models.UserModel;
-import com.ewertonilima.authuser.repositories.UserCourseRepository;
 import com.ewertonilima.authuser.repositories.UserRepository;
 import com.ewertonilima.authuser.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,11 +21,9 @@ public class UserServiceImpl implements UserService {
     @Autowired
     UserRepository userRepository;
 
-    final UserCourseRepository userCourseRepository;
     final CourseClient courseClient;
 
-    public UserServiceImpl(UserCourseRepository userCourseRepository, CourseClient courseClient) {
-        this.userCourseRepository = userCourseRepository;
+    public UserServiceImpl(CourseClient courseClient) {
         this.courseClient = courseClient;
     }
 
@@ -44,16 +40,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     @Override
     public void delete(UserModel userModel) {
-        boolean deleteUserCourseInCourse = false;
-        List<UserCourseModel> userCourseModelList = userCourseRepository.findAllUserCourseIntoUser(userModel.getUserId());
-        if (!userCourseModelList.isEmpty()) {
-            userCourseRepository.deleteAll(userCourseModelList);
-            deleteUserCourseInCourse = true;
-        }
         userRepository.delete(userModel);
-        if (deleteUserCourseInCourse) {
-            courseClient.deleteUserInCourse(userModel.getUserId());
-        }
     }
 
     @Override
