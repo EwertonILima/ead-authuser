@@ -1,7 +1,9 @@
 package com.ewertonilima.authuser.service.impl;
 
 import com.ewertonilima.authuser.clients.CourseClient;
+import com.ewertonilima.authuser.enums.ActionType;
 import com.ewertonilima.authuser.models.UserModel;
+import com.ewertonilima.authuser.publishers.UserEventPublisher;
 import com.ewertonilima.authuser.repositories.UserRepository;
 import com.ewertonilima.authuser.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -22,9 +24,11 @@ public class UserServiceImpl implements UserService {
     UserRepository userRepository;
 
     final CourseClient courseClient;
+    final UserEventPublisher userEventPublisher;
 
-    public UserServiceImpl(CourseClient courseClient) {
+    public UserServiceImpl(CourseClient courseClient, UserEventPublisher userEventPublisher) {
         this.courseClient = courseClient;
+        this.userEventPublisher = userEventPublisher;
     }
 
     @Override
@@ -61,5 +65,14 @@ public class UserServiceImpl implements UserService {
     @Override
     public Page<UserModel> findAll(Specification<UserModel> spec, Pageable pageable) {
         return userRepository.findAll(spec, pageable);
+    }
+
+    @Transactional
+    @Override
+    public UserModel saveUser(UserModel userModel) {
+        userRepository.save(userModel);
+
+        userEventPublisher.publisherUserEvent(userModel.convertToUserEventDto(), ActionType.CREATE);
+        return userModel;
     }
 }
