@@ -1,5 +1,8 @@
 package com.ewertonilima.authuser.controllers;
 
+import com.ewertonilima.authuser.configs.security.JwtProvider;
+import com.ewertonilima.authuser.dtos.JwtDto;
+import com.ewertonilima.authuser.dtos.LoginDto;
 import com.ewertonilima.authuser.dtos.UserDto;
 import com.ewertonilima.authuser.enums.RoleType;
 import com.ewertonilima.authuser.enums.UserStatus;
@@ -14,6 +17,10 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -23,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.validation.Valid;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 
@@ -37,10 +45,14 @@ public class AuthenticationController {
 
     final RoleService roleService;
     final PasswordEncoder passwordEncoder;
+    final JwtProvider jwtProvider;
+    final AuthenticationManager authenticationManager;
 
-    public AuthenticationController(RoleService roleService, PasswordEncoder passwordEncoder) {
+    public AuthenticationController(RoleService roleService, PasswordEncoder passwordEncoder, JwtProvider jwtProvider, AuthenticationManager authenticationManager) {
         this.roleService = roleService;
         this.passwordEncoder = passwordEncoder;
+        this.jwtProvider = jwtProvider;
+        this.authenticationManager = authenticationManager;
     }
 
     @PostMapping("/signup")
@@ -69,6 +81,15 @@ public class AuthenticationController {
         log.debug("POST registerUser userId saved {} ", userModel.getUserId());
         log.info("User saved successfully userId {} ", userModel.getUserId());
         return ResponseEntity.status(HttpStatus.CREATED).body(userModel);
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<JwtDto> authenticateUser(@Valid @RequestBody LoginDto loginDto) {
+        Authentication authentication = authenticationManager.authenticate(
+                new UsernamePasswordAuthenticationToken(loginDto.getUsername(), loginDto.getPassword()));
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        String jwt = jwtProvider.generateJwt(authentication);
+        return ResponseEntity.ok(new JwtDto(jwt));
     }
 
     @GetMapping("/")
