@@ -1,5 +1,7 @@
 package com.ewertonilima.authuser.controllers;
 
+import com.ewertonilima.authuser.configs.security.AuthenticationCurrentUserService;
+import com.ewertonilima.authuser.configs.security.UserDetailsImpl;
 import com.ewertonilima.authuser.dtos.UserDto;
 import com.ewertonilima.authuser.models.UserModel;
 import com.ewertonilima.authuser.service.UserService;
@@ -13,6 +15,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -40,10 +46,20 @@ public class UserController {
     @Autowired
     private UserService userService;
 
+    private final AuthenticationCurrentUserService authenticationCurrentUserService;
+
+    public UserController(AuthenticationCurrentUserService authenticationCurrentUserService) {
+        this.authenticationCurrentUserService = authenticationCurrentUserService;
+    }
+
+    @PreAuthorize("hasAnyRole('ADMIN')")
     @GetMapping
     public ResponseEntity<Page<UserModel>> getAllUsers(SpecificationTemplate.UserSpec spec,
                                                        @PageableDefault(page = 0, size = 10, sort = "userId", direction = Sort.Direction.ASC)
-                                                       Pageable pageable) {
+                                                       Pageable pageable,
+                                                       Authentication authentication) {
+        UserDetails userDetails = (UserDetailsImpl) authentication.getPrincipal();
+        log.info("Authentication {}", userDetails.getUsername());
         Page<UserModel> userModelPage = userService.findAll(spec, pageable);
         if (!userModelPage.isEmpty()) {
             for (UserModel user : userModelPage.toList()) {
@@ -53,13 +69,19 @@ public class UserController {
         return ResponseEntity.status(HttpStatus.OK).body(userModelPage);
     }
 
+    @PreAuthorize("hasAnyRole('STUDENT')")
     @GetMapping("/{userId}")
     public ResponseEntity<Object> getOneUser(@PathVariable(value = "userId") UUID userId) {
-        Optional<UserModel> userModelOptional = userService.findById(userId);
-        if (!userModelOptional.isPresent()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
+        UUID currentUserId = authenticationCurrentUserService.getCurrentUser().getUserId();
+        if (currentUserId.equals(userId)) {
+            Optional<UserModel> userModelOptional = userService.findById(userId);
+            if (!userModelOptional.isPresent()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("User not found.");
+            } else {
+                return ResponseEntity.status(HttpStatus.OK).body(userModelOptional.get());
+            }
         } else {
-            return ResponseEntity.status(HttpStatus.OK).body(userModelOptional.get());
+            throw new AccessDeniedException("Forbidden");
         }
     }
 
