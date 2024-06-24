@@ -2,8 +2,8 @@ package com.ewertonilima.authuser.validations.impl;
 
 import com.ewertonilima.authuser.validations.UsernameConstraint;
 
-import javax.validation.ConstraintValidator;
-import javax.validation.ConstraintValidatorContext;
+import jakarta.validation.ConstraintValidator;
+import jakarta.validation.ConstraintValidatorContext;
 
 public class UsernameConstraintImpl implements ConstraintValidator<UsernameConstraint, String> {
 
